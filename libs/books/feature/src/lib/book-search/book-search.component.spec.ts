@@ -1,6 +1,9 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { SharedTestingModule } from '@tmo/shared/testing';
+import {
+  createReadingListItem,
+  SharedTestingModule,
+} from '@tmo/shared/testing';
 
 import { BooksFeatureModule } from '../books-feature.module';
 import { BookSearchComponent } from './book-search.component';
@@ -11,7 +14,7 @@ describe('ProductsListComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [BooksFeatureModule, NoopAnimationsModule, SharedTestingModule]
+      imports: [BooksFeatureModule, NoopAnimationsModule, SharedTestingModule],
     }).compileComponents();
   }));
 
@@ -23,5 +26,28 @@ describe('ProductsListComponent', () => {
 
   it('should create', () => {
     expect(component).toBeDefined();
+  });
+
+  describe('Add Book to reading List', () => {
+    it('Should add book to reading list', () => {
+      const app = fixture.debugElement.componentInstance;
+      const searchExample = fixture.nativeElement.querySelector(
+        '#searchExample'
+      );
+      searchExample.click();
+      fixture.detectChanges();
+      const addSpy = jest
+        .spyOn(app, 'addBookToReadingList')
+        .mockImplementation();
+      app.addBookToReadingList();
+      expect(addSpy).toHaveBeenCalled();
+    });
+    it('should create a snackbar', () => {
+      const app = fixture.debugElement.componentInstance;
+      app.addBookToReadingList(createReadingListItem('A'));
+      fixture.detectChanges();
+      const snackBar = document.querySelector('snack-bar-container');
+      expect(snackBar).toBeTruthy();
+    });
   });
 });

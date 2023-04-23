@@ -6,6 +6,7 @@ import {
   getAllBooks,
   ReadingListBook,
   searchBooks,
+  undoAddToReadingList,
 } from '@tmo/books/data-access';
 import { FormBuilder } from '@angular/forms';
 import { Book } from '@tmo/shared/models';
@@ -32,7 +33,7 @@ export class BookSearchComponent {
 
   trackByBookId(index, item) {
     return item.id;
- }
+  }
 
   formatDate(date: void | string) {
     return date
@@ -42,6 +43,7 @@ export class BookSearchComponent {
 
   addBookToReadingList(book: Book) {
     this.store.dispatch(addToReadingList({ book }));
+    this.store.dispatch(undoAddToReadingList({ book }));
   }
 
   searchExample() {

@@ -1,8 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Actions, createEffect, ofType, OnInitEffects } from '@ngrx/effects';
 import { of } from 'rxjs';
-import { catchError, concatMap, exhaustMap, map } from 'rxjs/operators';
+import {
+  catchError,
+  concatMap,
+  exhaustMap,
+  map,
+  switchMap,
+} from 'rxjs/operators';
 import { ReadingListItem } from '@tmo/shared/models';
 import * as ReadingListActions from './reading-list.actions';
 
@@ -38,6 +45,26 @@ export class ReadingListEffects implements OnInitEffects {
     )
   );
 
+  undoAddToReadingList$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ReadingListActions.undoAddToReadingList),
+      switchMap(({ book }) =>
+        this.snackBar
+          .open(`${book.title} added to the reading list`, 'Undo', {
+            duration: 3000,
+          })
+          .onAction()
+          .pipe(
+            map(() =>
+              ReadingListActions.removeFromReadingList({
+                item: { ...book, bookId: book.id },
+              })
+            )
+          )
+      )
+    )
+  );
+
   removeBook$ = createEffect(() =>
     this.actions$.pipe(
       ofType(ReadingListActions.removeFromReadingList),
@@ -54,9 +81,33 @@ export class ReadingListEffects implements OnInitEffects {
     )
   );
 
+  undoRemoveFromReadingList$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(ReadingListActions.undoRemoveFromReadingList),
+      switchMap(({ item }) =>
+        this.snackBar
+          .open(`${item.title} removed from the reading list`, 'Undo', {
+            duration: 3000,
+          })
+          .onAction()
+          .pipe(
+            map(() =>
+              ReadingListActions.addToReadingList({
+                book: { ...item, id: item.bookId },
+              })
+            )
+          )
+      )
+    )
+  );
+
   ngrxOnInitEffects() {
     return ReadingListActions.init();
   }
 
-  constructor(private actions$: Actions, private http: HttpClient) {}
+  constructor(
+    private actions$: Actions,
+    private http: HttpClient,
+    private snackBar: MatSnackBar
+  ) {}
 }
