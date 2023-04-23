@@ -1,38 +1,52 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
   addToReadingList,
   clearSearch,
   getAllBooks,
-  ReadingListBook,
   searchBooks,
 } from '@tmo/books/data-access';
-import { FormBuilder } from '@angular/forms';
+import { FormControl } from '@angular/forms';
 import { Book } from '@tmo/shared/models';
+import {
+  debounceTime,
+  distinctUntilChanged,
+  switchMap,
+  takeUntil,
+} from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
 
 @Component({
   selector: 'tmo-book-search',
   templateUrl: './book-search.component.html',
   styleUrls: ['./book-search.component.scss'],
 })
-export class BookSearchComponent {
-  searchForm = this.fb.group({
-    term: '',
-  });
+export class BookSearchComponent implements OnInit, OnDestroy {
+  unSubscribe$ = new Subject();
+  searchForm = new FormControl('');
 
   books$ = this.store.select(getAllBooks);
-  constructor(
-    private readonly store: Store,
-    private readonly fb: FormBuilder
-  ) {}
-
-  get searchTerm(): string {
-    return this.searchForm.value.term;
-  }
+  constructor(private readonly store: Store) {}
 
   trackByBookId(index, item) {
     return item.id;
- }
+  }
+
+  ngOnInit() {
+    this.searchForm.valueChanges
+      .pipe(
+        takeUntil(this.unSubscribe$),
+        debounceTime(500),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          return of(query);
+        })
+      )
+      .subscribe((text: string) => {
+        const searchQuery = text.replace(/^\s+|\s+$/g, ''); //remove leading and trailing whitespace
+        this.searchBooks(searchQuery);
+      });
+  }
 
   formatDate(date: void | string) {
     return date
@@ -45,15 +59,19 @@ export class BookSearchComponent {
   }
 
   searchExample() {
-    this.searchForm.controls.term.setValue('javascript');
-    this.searchBooks();
+    this.searchForm.setValue('javascript');
   }
 
-  searchBooks() {
-    if (this.searchForm.value.term) {
-      this.store.dispatch(searchBooks({ term: this.searchTerm }));
+  searchBooks(query: string) {
+    if (query) {
+      this.store.dispatch(searchBooks({ term: query }));
     } else {
       this.store.dispatch(clearSearch());
     }
+  }
+
+  ngOnDestroy(): void {
+    this.unSubscribe$.next();
+    this.unSubscribe$.complete();
   }
 }
